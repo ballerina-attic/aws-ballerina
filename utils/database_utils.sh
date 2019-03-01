@@ -1,10 +1,5 @@
 #!/bin/bash
 
-#current_dir="$(dirname "$0")"
-#
-#. ${current_dir}/common_utils.sh
-#. ${current_dir}/constants.sh
-
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 
 . ${parent_path}/common_utils.sh
@@ -18,14 +13,17 @@ declare oracle_se2_port=1521
 # $1 - database type
 # $2 - database version
 # $3 - database name
+# $4 - instance_type
+# $5 - variable to set the database host value into
 function create_database() {
     local db_type=$1
     local db_version=$2
     local database_name=$3
-    local __db_host=$4
+    local instance_type=$4
+    local __db_host=$5
 
     aws rds create-db-instance --db-instance-identifier ${database_name} \
-        --db-instance-class db.t2.micro \
+        --db-instance-class ${instance_type} \
         --engine ${db_type} \
         --allocated-storage 10 \
         --master-username masterawsuser \
@@ -36,11 +34,13 @@ function create_database() {
     aws rds wait  db-instance-available  --db-instance-identifier "$database_name"
 
     eval $__db_host=$(aws rds describe-db-instances --db-instance-identifier="$database_name" --query="[DBInstances][][Endpoint][].{Address:Address}" --output=text);
-    #echo ${db_host}
 }
 
+# $1 location of the testplan-props.properties to get the db type
+# $2 database instance type
 function create_default_database_and_write_infra_properties() {
     local output_dir=$1
+    local instance_type=$2
     declare -A db_details
     read_property_file ${output_dir}/testplan-props.properties db_details
 
@@ -49,7 +49,7 @@ function create_default_database_and_write_infra_properties() {
     database_name=$(generate_random_db_name)
 
     #### CREATE DATABASE AND RETRIEVE THE HOST
-    create_database ${database_type} ${database_version} ${database_name} database_host
+    create_database ${database_type} ${database_version} ${database_name} ${instance_type} database_host
 
     #### WRITE INFRA PROPERTIES TO BE PROPAGATED INTO DEPLOYMENT STAGE
     declare -A infra_props;
@@ -63,7 +63,7 @@ function create_default_database_and_write_infra_properties() {
 }
 
 function generate_random_db_name() {
-    echo $(generate_ramdom_name "ballerina-kubernetes")
+    echo $(generate_random_name "ballerina-database")
 }
 
 #$1 - db type

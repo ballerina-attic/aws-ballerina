@@ -11,4 +11,4 @@ echo ${output_dir}
 
 create_default_cluster_and_write_infra_properties ${output_dir}
 
-create_default_database_and_write_infra_properties ${output_dir}
+create_default_database_and_write_infra_properties ${output_dir} "db.t2.micro"

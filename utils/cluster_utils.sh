@@ -88,7 +88,7 @@ function create_cluster() {
 }
 
 function generate_random_cluster_name() {
-    echo $(generate_ramdom_name "ballerina-cluster")
+    echo $(generate_random_name "ballerina-cluster")
 }
 
 # $1 - Property file
@@ -128,10 +128,7 @@ function cleanup_cluster() {
 
     aws cloudformation delete-stack --stack-name=EKS-$cluster_name-VPC
 
-
-    #eksctl delete cluster --name=$cluster_name
     echo " cluster resources deletion triggered"
-
 }
 
 function delete_k8s_services() {

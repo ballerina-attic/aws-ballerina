@@ -28,7 +28,7 @@ database_name=$(generate_random_db_name)
 
 echo "CREATE DATABASE AND RETRIEVE THE HOST"
 echo "DATABASE DETAILS: DB_TYPE: ${database_type} | DB_VERSION:${database_version} | DB_NAME: ${database_name}"
-create_database ${database_type} ${database_version} ${database_name} database_host
+create_database ${database_type} ${database_version} ${database_name} "db.t2.micro" database_host
 echo "DBHOST: $database_host"
 
 echo "CREATE DB OVER"

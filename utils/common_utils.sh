@@ -13,7 +13,7 @@ function write_to_properties_file() {
 }
 
 # $1 - prefix
-function generate_ramdom_name() {
+function generate_random_name() {
     local prefix=$1
     local new_uuid=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
     echo ${prefix}-${new_uuid}

@@ -9,6 +9,6 @@ database_name_key="DatabaseName"
 
 config_filename_key="ConfigFileName"
 
-## Properties with following keys will be copies to infrastructure-cleanup.properties file
+## Properties with following keys will be copied to infrastructure-cleanup.properties file
 cluster_name_key="ClusterName"
 cluster_region_key="ClusterRegion"
