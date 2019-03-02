@@ -1,4 +1,19 @@
 #!/bin/bash
+# Copyright (c) 2019, WSO2 Inc. (http://wso2.org) All Rights Reserved.
+#
+# WSO2 Inc. licenses this file to you under the Apache License,
+# Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 
@@ -10,6 +25,9 @@ declare sql_server_se_port=1433
 declare oracle_se2_port=1521
 
 
+# Creates a database provided the type, version, name, instance type, and the reference variable to set the hostname
+# of the created database into.
+#
 # $1 - database type
 # $2 - database version
 # $3 - database name
@@ -36,7 +54,12 @@ function create_database() {
     eval $__db_host=$(aws rds describe-db-instances --db-instance-identifier="$database_name" --query="[DBInstances][][Endpoint][].{Address:Address}" --output=text);
 }
 
-# $1 location of the testplan-props.properties to get the db type
+# Creates a database provided the location to find testplan-prop.properties which contains the DB type and the version.
+# Also this would create a random name for the database.
+# And, write following properties(which imply what the value should be) into the infrastructure.properites.
+# "DatabaseHost", "DatabasePort", "DBUsername", "DBPassword", "DatabaseName"
+#
+# $1 location of the testplan-props.properties to get the db type and version
 # $2 database instance type
 function create_default_database_and_write_infra_properties() {
     local output_dir=$1
@@ -62,10 +85,13 @@ function create_default_database_and_write_infra_properties() {
     write_to_properties_file ${output_dir}/infrastructure.properties infra_props
 }
 
+# Generates a random name for the database prefixed with "ballerina-database"
 function generate_random_db_name() {
     echo $(generate_random_name "ballerina-database")
 }
 
+# Returns the port value for a given database type.
+#
 #$1 - db type
 function get_db_port() {
     local db_type=$1
@@ -78,4 +104,13 @@ function get_db_port() {
     else
         echo -1
     fi
+}
+
+# Deletes the database with the provided identifier
+#
+# $1 - Database identifier
+function delete_database() {
+    db_identifier=$1
+    aws rds delete-db-instance --db-instance-identifier "$db_identifier" --skip-final-snapshot
+    echo "rds deletion triggered"
 }

@@ -19,11 +19,22 @@ parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 grand_parent_path=$(dirname ${parent_path})
 
 . ${grand_parent_path}/utils/cluster_utils.sh
-. ${grand_parent_path}/utils/database_utils.sh
 
-output_dir=$2
-echo ${output_dir}
+echo "Resource deletion script is being executed !"
+input_dir=${2}
 
-create_default_cluster_and_write_infra_properties ${output_dir}
+# Read configuration into an associative array
+declare -A infra_cleanup_config
+read_property_file "${input_dir}/infrastructure-cleanup.properties" infra_cleanup_config
 
-create_default_database_and_write_infra_properties ${output_dir} "db.t2.micro"
+#delete kubernetes services
+services_to_be_deleted=${infra_cleanup_config[ServicesToBeDeleted]}
+delete_k8s_services services_to_be_deleted
+
+#delete database
+db_identifier=${infra_cleanup_config[DatabaseName]}
+delete_database db_identifier
+
+#cleanup cluster
+cluster_name=${infra_cleanup_config[ClusterName]}
+cleanup_cluster ${cluster_name}
