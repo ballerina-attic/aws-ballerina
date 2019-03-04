@@ -76,18 +76,21 @@ function create_cluster_and_write_to_infra_properties() {
     local status=""
     while [ "${status}" != "ACTIVE" ] && [ "${retry_attempts}" -gt 0 ]
     do
-       vpc_cidr_block="10.0.0.0/28"
-       #vpc_id=$(aws ec2 create-vpc --cidr-block ${vpc_cidr_block} --query 'Vpc.VpcId')
+       vpc_cidr_block="10.0.0.0/24"
+       vpc_id=$(aws ec2 create-vpc --cidr-block ${vpc_cidr_block} --query 'Vpc.VpcId')
 
-       #aws ec2 wait vpc-available --vpc-ids ${vpc_id}
-       vpc_id="vpc-01f3ee93913b31f4e"
+       aws ec2 wait vpc-available --vpc-ids ${vpc_id}
+       aws ec2 wait vpc-available --vpc-ids ${vpc_id}
+       aws ec2 wait vpc-available --vpc-ids ${vpc_id}
+       aws ec2 wait vpc-available --vpc-ids ${vpc_id}
+
        echo "Without quotes"
        aws ec2 describe-vpcs --vpc-ids ${vpc_id}
        echo "With quotes"
        aws ec2 describe-vpcs --vpc-ids "$vpc_id"
 
-       subnet_cidr_block_1="10.0.0.0/29"
-       subnet_cidr_block_2="10.0.0.8/29"
+       subnet_cidr_block_1="10.0.0.0/25"
+       subnet_cidr_block_2="10.0.0.128/25"
 
        subnet_1=$(aws ec2 create-subnet --availability-zone ${zone_1} --cidr-block ${subnet_cidr_block_1} --vpc-id ${vpc_id} --query 'Subnet.SubnetId')
        subnet_2=$(aws ec2 create-subnet --availability-zone ${zone_2} --cidr-block ${subnet_cidr_block_2} --vpc-id ${vpc_id} --query 'Subnet.SubnetId')
