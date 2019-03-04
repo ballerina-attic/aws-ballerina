@@ -27,3 +27,11 @@ config_filename_key="ConfigFileName"
 ## Properties with following keys will be copied to infrastructure-cleanup.properties file
 cluster_name_key="ClusterName"
 cluster_region_key="ClusterRegion"
+subnet1_key="Subnet1"
+subnet2_key="Subnet2"
+security_group1_key="SecurityGroup1"
+security_group2_key="SecurityGroup2"
+vpc_key="VPC"
+
+## TestGrid AWS account sepecific constants
+iam_role="arn:aws:iam::809489900555:role/eks_role"

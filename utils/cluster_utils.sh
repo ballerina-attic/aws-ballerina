@@ -44,42 +44,12 @@ function create_default_cluster_and_write_infra_properties() {
     local max_nodes=3
     local min_nodes=1
     local node_type="t2.small"
-    local zones="us-east-1a,us-east-1b,us-east-1d"
+    local zone_1="us-east-1a"
+    local zone_2="us-east-1b"
     local config_file_name=ballerina-config.yaml
     local config_file=${output_dir}/${config_file_name}
 
-    create_cluster ${retry_attempts} ${cluster_name} ${cluster_region} ${max_nodes} ${min_nodes} ${node_type} ${zones} ${config_file}
-
-    declare -A infra_cleanup_props;
-
-    infra_cleanup_props[${cluster_name_key}]=${cluster_name}
-    infra_cleanup_props[${cluster_region_key}]=${cluster_region}
-
-    write_to_properties_file ${output_dir}/infrastructure-cleanup.properties infra_cleanup_props
-
-    echo "${config_filename_key}=${config_file_name}">> ${output_dir}/infrastructure.properties
-}
-
-# This creates the cluster with default properties, but does not write any information to the output directory.
-# If you use this, you need to take care of passing on properties to later stages such as dpeloyment/resource cleanup
-# Also this will result in the creation of a custom kubeconfig named "ballerina-config.yaml" copied to the output
-# directory which needs to be passed as a parameter to this function.
-#
-# $1 - Output directory to write kubeconfig file into.
-# $2 - Name of the cluster to be created.
-function create_default_cluster() {
-    local output_dir=$1
-    local cluster_name=$2
-    local cluster_region="us-east-1"
-    local retry_attempts=3
-    local max_nodes=3
-    local min_nodes=1
-    local node_type="t2.small"
-    local zones="us-east-1a,us-east-1b,us-east-1d"
-    local config_file_name=ballerina-config.yaml
-    local config_file=${output_dir}/${config_file_name}
-
-    create_cluster ${retry_attempts} ${cluster_name} ${cluster_region} ${max_nodes} ${min_nodes} ${node_type} ${zones} ${config_file}
+    create_cluster_and_write_to_infra_properties ${output_dir} ${retry_attempts} ${cluster_name} ${cluster_region} ${max_nodes} ${min_nodes} ${node_type} ${zone_1} ${zone_2} ${config_file}
 }
 
 # This creates an EKS cluster with provided parameters.
@@ -92,40 +62,69 @@ function create_default_cluster() {
 # $6 - Node type
 # $7 - Zones
 # $8 - Kubeconfig file name with the path
-function create_cluster() {
-    local retry_attempts=$1
-    local cluster_name=$2
-    local cluster_region=$3
-    local max_nodes=$4
-    local min_nodes=$5
-    local node_type=$6
-    local zones=$7
-    local kubeconfig_file=$8
+function create_cluster_and_write_to_infra_properties() {
+    local output_dir=$1
+    local retry_attempts=$2
+    local cluster_name=$3
+    local cluster_region=$4
+    local max_nodes=$5
+    local min_nodes=$6
+    local node_type=$7
+    local zone_1=$8
+    local zone_2=$9
+    local kubeconfig_file=$10
     local status=""
     while [ "${status}" != "ACTIVE" ] && [ "${retry_attempts}" -gt 0 ]
     do
-        eksctl create cluster --name ${cluster_name} --region ${cluster_region} --nodes-max ${max_nodes} --nodes-min ${min_nodes} --node-type ${node_type} --zones=${zones} --kubeconfig=${kubeconfig_file}
+       vpc_cidr_block="10.0.0.0/28"
+       vpc_id=$(aws ec2 create-vpc --cidr-block ${vpc_cidr_block} --query 'Vpc.VpcId')
+
+       aws ec2 wait vpc-available --vpc-ids ${vpc_id}
+
+       subnet_cidr_block_1="10.0.0.0/29"
+       subnet_cidr_block_2="10.0.0.8/29"
+
+       subnet_1=$(aws ec2 create-subnet --availability-zone ${zone_1} --cidr-block ${subnet_cidr_block_1} --vpc-id ${vpc_id} --query 'Subnet.SubnetId')
+       subnet_2=$(aws ec2 create-subnet --availability-zone ${zone_2} --cidr-block ${subnet_cidr_block_2} --vpc-id ${vpc_id} --query 'Subnet.SubnetId')
+
+       sg_1=${cluster_name}-sg1
+       sg_2=${cluster_name}-sg2
+
+       aws ec2 create-security-group --description "${sg_1} security group" --group-name ${sg_1} --vpc-id ${vpc_id}
+       aws ec2 create-security-group --description "${sg_2} security group" --group-name ${sg_2} --vpc-id ${vpc_id}
+
+       aws eks create-cluster --name ${cluster_name} --role-arn ${iam_role} --resources-vpc-config subnetIds=${subnet_1},${subnet_2},securityGroupIds=${sg_1},${sg_2}
+
         #Failed cluster creation - another cluster is being created, so wait for cluster to be created - This needs to be done
         #in case there are multiple test plans are created. i.e. There multiple infra combinations.
         if [ $? -ne 0 ]; then
-             echo "Waiting for service role.."
-             aws cloudformation wait stack-create-complete --stack-name=EKS-$cluster_name-ServiceRole
-             echo "Waiting for vpc.."
-             aws cloudformation wait stack-create-complete --stack-name=EKS-$cluster_name-VPC
-             echo "Waiting for Control Plane.."
-             aws cloudformation wait stack-create-complete --stack-name=EKS-$cluster_name-ControlPlane
-             echo "Waiting for node-group.."
-             aws cloudformation wait stack-create-complete --stack-name=EKS-$cluster_name-DefaultNodeGroup
+            echo "Waiting for cluster creation"
+            aws eks wait --name ${cluster_name}
         else
             #Configure the security group of nodes to allow traffic from outside
-            node_security_group=$(aws ec2 describe-security-groups --filter Name=tag:aws:cloudformation:logical-id,Values=NodeSecurityGroup --query="SecurityGroups[0].GroupId" --output=text)
-            aws ec2 authorize-security-group-ingress --group-id $node_security_group --protocol tcp --port 0-65535 --cidr 0.0.0.0/0
+            aws ec2 authorize-security-group-ingress --group-id ${sg_1} --protocol tcp --port 0-65535 --cidr 0.0.0.0/0
+            aws ec2 authorize-security-group-ingress --group-id ${sg_2} --protocol tcp --port 0-65535 --cidr 0.0.0.0/0
+
         fi
         status=$(aws eks describe-cluster --name ${cluster_name} --query="[cluster.status]" --output=text)
-        echo "Status is "$status
+        echo "Status is "${status}
         retry_attempts=$((${retry_attempts}-1))
         echo "attempts left : "${retry_attempts}
     done
+
+    declare -A infra_cleanup_props;
+
+    infra_cleanup_props[${cluster_name_key}]=${cluster_name}
+    infra_cleanup_props[${cluster_region_key}]=${cluster_region}
+    infra_cleanup_props[${subnet1_key}]=${subnet_1}
+    infra_cleanup_props[${subnet2_key}]=${subnet_2}
+    infra_cleanup_props[${security_group1_key}]=${sg_1}
+    infra_cleanup_props[${security_group2_key}]=${sg_2}
+    infra_cleanup_props[${vpc_key}]=${vpc_id}
+
+    write_to_properties_file ${output_dir}/infrastructure-cleanup.properties infra_cleanup_props
+
+    echo "${config_filename_key}=${kubeconfig_file}">> ${output_dir}/infrastructure.properties
 
     #if the status is not active by this phase the cluster creation has failed, hence exiting the script in error state
     if [ "${status}" != "ACTIVE" ];then
@@ -137,6 +136,14 @@ function create_cluster() {
 # Generates a random name for the EKS cluster prefixed with "ballerina-cluster"
 function generate_random_cluster_name() {
     echo $(generate_random_name "ballerina-cluster")
+}
+
+function generate_random_vpc_name() {
+    echo $(generate_random_name "ballerina-vpc")
+}
+
+function generate_random_security_group_name() {
+    echo $(generate_random_name "ballerina-sg")
 }
 
 # Reads a property file in to the passed associative array. Note that the associative array should be declared before
@@ -165,25 +172,29 @@ function read_property_file() {
 #
 # $1 - Name of the cluster
 function cleanup_cluster() {
-    local cluster_name=$1
-    #delete cluster resources
-    aws cloudformation delete-stack --stack-name "${cluster_name}-worker-nodes"
-    aws eks delete-cluster --name "${cluster_name}"
-    aws eks wait cluster-deleted --name "${cluster_name}"
-    aws eks describe-cluster --name "${cluster_name}" --query "cluster.status"
+    local output_dir=$1
 
-    aws cloudformation delete-stack --stack-name=EKS-$cluster_name-ControlPlane
-    aws cloudformation wait stack-delete-complete --stack-name=EKS-$cluster_name-ControlPlane
+    declare -A infra_cleanup_props
+    read_property_file ${output_dir}/infrastructure-cleanup.properties infra_cleanup_props
+    cluster_name=infra_cleanup_props[${cluster_name_key}]
+    security_group1=infra_cleanup_props[${security_group1_key}]
+    security_group2=infra_cleanup_props[${security_group2_key}]
+    subnet1=infra_cleanup_props[${subnet1_key}]
+    subnet2=infra_cleanup_props[${subnet2_key}]
+    vpc=infra_cleanup_props[${VPC}]
 
-    aws cloudformation delete-stack --stack-name=EKS-$cluster_name-ServiceRole
-    aws cloudformation wait stack-delete-complete --stack-name=EKS-$cluster_name-ServiceRole
+    aws eks delete-cluster --name ${cluster_name}
+    aws eks wait cluster-deleted --name ${cluster_name}
 
-    aws cloudformation delete-stack --stack-name=EKS-$cluster_name-DefaultNodeGroup
-    aws cloudformation wait stack-delete-complete --stack-name=EKS-$cluster_name-DefaultNodeGroup
+    aws ec2 delete-security-group --group-id ${security_group1}
+    aws ec2 delete-security-group --group-id ${security_group2}
 
-    aws cloudformation delete-stack --stack-name=EKS-$cluster_name-VPC
+    aws ec2 delete-subnet --subnet-id ${subnet1}
+    aws ec2 delete-subnet --subnet-id ${subnet2}
 
-    echo " cluster resources deletion triggered"
+    aws ec2 delete-vpc --vpc-id ${vpc}
+
+    echo "Cluster and resources deleted"
 }
 
 # Deletes the provided kubernetes services
