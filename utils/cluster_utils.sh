@@ -77,10 +77,10 @@ function create_cluster_and_write_to_infra_properties() {
     while [ "${status}" != "ACTIVE" ] && [ "${retry_attempts}" -gt 0 ]
     do
        vpc_cidr_block="10.0.0.0/28"
-       vpc_id=$(aws ec2 create-vpc --cidr-block ${vpc_cidr_block} --query 'Vpc.VpcId')
+       #vpc_id=$(aws ec2 create-vpc --cidr-block ${vpc_cidr_block} --query 'Vpc.VpcId')
 
-       aws ec2 wait vpc-available --vpc-ids ${vpc_id}
-
+       #aws ec2 wait vpc-available --vpc-ids ${vpc_id}
+       vpc_id="vpc-01f3ee93913b31f4e"
        echo "Without quotes"
        aws ec2 describe-vpcs --vpc-ids ${vpc_id}
        echo "With quotes"
