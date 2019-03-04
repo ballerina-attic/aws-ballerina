@@ -81,17 +81,28 @@ function create_cluster_and_write_to_infra_properties() {
 
        aws ec2 wait vpc-available --vpc-ids ${vpc_id}
 
+       echo "Without quotes"
+       aws ec2 describe-vpcs --vpc-ids ${vpc_id}
+       echo "With quotes"
+       aws ec2 describe-vpcs --vpc-ids "$vpc_id"
+
        subnet_cidr_block_1="10.0.0.0/29"
        subnet_cidr_block_2="10.0.0.8/29"
 
        subnet_1=$(aws ec2 create-subnet --availability-zone ${zone_1} --cidr-block ${subnet_cidr_block_1} --vpc-id ${vpc_id} --query 'Subnet.SubnetId')
        subnet_2=$(aws ec2 create-subnet --availability-zone ${zone_2} --cidr-block ${subnet_cidr_block_2} --vpc-id ${vpc_id} --query 'Subnet.SubnetId')
 
+       aws ec2 describe-subnets --subnet-ids ${subnet_1}
+       aws ec2 describe-subnets --subnet-ids ${subnet_2}
+
        sg_1=${cluster_name}-sg1
        sg_2=${cluster_name}-sg2
 
        aws ec2 create-security-group --description "${sg_1} security group" --group-name ${sg_1} --vpc-id ${vpc_id}
        aws ec2 create-security-group --description "${sg_2} security group" --group-name ${sg_2} --vpc-id ${vpc_id}
+
+       aws ec2 describe-security-groups --group-names ${sg_1}
+       aws ec2 describe-security-groups --group-names ${sg_2}
 
        aws eks create-cluster --name ${cluster_name} --role-arn ${iam_role} --resources-vpc-config subnetIds=${subnet_1},${subnet_2},securityGroupIds=${sg_1},${sg_2}
 
