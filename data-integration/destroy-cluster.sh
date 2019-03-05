@@ -36,5 +36,5 @@ db_identifier=${infra_cleanup_config[DatabaseName]}
 delete_database db_identifier
 
 #cleanup cluster
-cluster_name=${infra_cleanup_config[ClusterName]}
-cleanup_cluster ${cluster_name}
+#cluster_name=${infra_cleanup_config[ClusterName]}
+#cleanup_cluster ${cluster_name}
