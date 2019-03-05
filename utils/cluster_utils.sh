@@ -52,12 +52,12 @@ function create_default_cluster_and_write_infra_properties() {
 
     declare -A infra_cleanup_props;
 
-    infra_cleanup_props[${cluster_name_key}]=${cluster_name}
-    infra_cleanup_props[${cluster_region_key}]=${cluster_region}
+    infra_cleanup_props[ClusterName]=${cluster_name}
+    infra_cleanup_props[ClusterRegion]=${cluster_region}
 
     write_to_properties_file ${output_dir}/infrastructure-cleanup.properties infra_cleanup_props
 
-    echo "${config_filename_key}=${config_file_name}">> ${output_dir}/infrastructure.properties
+    echo "ConfigFileName=${config_file_name}">> ${output_dir}/infrastructure.properties
 }
 
 # This creates the cluster with default properties, but does not write any information to the output directory.
