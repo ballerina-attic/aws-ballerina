@@ -19,6 +19,7 @@ parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 grand_parent_path=$(dirname ${parent_path})
 
 . ${grand_parent_path}/utils/cluster_utils.sh
+. ${grand_parent_path}/utils/database_utils.sh
 
 echo "Resource deletion script is being executed !"
 input_dir=${2}
