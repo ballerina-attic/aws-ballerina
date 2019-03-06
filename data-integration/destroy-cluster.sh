@@ -23,18 +23,13 @@ grand_parent_path=$(dirname ${parent_path})
 echo "Resource deletion script is being executed !"
 input_dir=${2}
 
-# Read configuration into an associative array
+# Read infrastucture cleanup properties to a associative array
 declare -A infra_cleanup_config
-read_property_file "${input_dir}/infrastructure-cleanup.properties" infra_cleanup_config
+read_infra_cleanup_props ${input_dir} infra_cleanup_config
 
-#delete kubernetes services
-services_to_be_deleted=${infra_cleanup_config[ServicesToBeDeleted]}
-delete_k8s_services services_to_be_deleted
-
-#delete database
+# Delete database
 db_identifier=${infra_cleanup_config[DatabaseName]}
 delete_database db_identifier
 
-#Cleanup k8s resources
-namespace=${infra_cleanup_config[NamespacesToCleanup]}
-kubectl -n ${namespace} delete deployment,po,svc --all
+# Cleanup k8s resources
+cleanup_k8s_resources infra_cleanup_config
