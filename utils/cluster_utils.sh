@@ -182,8 +182,8 @@ function delete_k8s_services() {
 # Deletes all k8s resources in the used namespace. The relevant namespace is taken from
 # infrastructure-cleanup.properties.
 function cleanup_k8s_resources() {
-    local -n infra_cleanup_config=$1
-    local namespace=${infra_cleanup_config[NamespacesToCleanup]}
+    local -n __infra_cleanup_config=$1
+    local namespace=${__infra_cleanup_config[NamespacesToCleanup]}
     kubectl -n ${namespace} delete deployment,po,svc --all
 }
 
