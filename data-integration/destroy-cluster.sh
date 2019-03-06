@@ -20,6 +20,7 @@ grand_parent_path=$(dirname ${parent_path})
 
 . ${grand_parent_path}/utils/cluster_utils.sh
 . ${grand_parent_path}/utils/database_utils.sh
+. ${grand_parent_path}/utils/constants.sh
 
 echo "Resource deletion script is being executed !"
 input_dir=${2}
@@ -29,7 +30,7 @@ declare -A infra_cleanup_config
 read_infra_cleanup_props ${input_dir} infra_cleanup_config
 
 # Delete database
-db_identifier=${infra_cleanup_config[DatabaseName]}
+db_identifier=${infra_cleanup_config[${database_name_key}]}
 delete_database db_identifier
 
 # Cleanup k8s resources

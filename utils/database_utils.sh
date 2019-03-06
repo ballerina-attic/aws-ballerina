@@ -83,6 +83,8 @@ function create_default_database_and_write_infra_properties() {
     infra_props[${database_name_key}]=${database_name}
 
     write_to_properties_file ${output_dir}/infrastructure.properties infra_props
+
+    echo "${database_name_key}=${database_name}" >> ${output_dir}/infrastructure-cleanup.properties
 }
 
 # Generates a random name for the database prefixed with "ballerina-database"
