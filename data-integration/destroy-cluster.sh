@@ -34,3 +34,7 @@ delete_k8s_services services_to_be_deleted
 #delete database
 db_identifier=${infra_cleanup_config[DatabaseName]}
 delete_database db_identifier
+
+#Cleanup k8s resources
+namespace=${infra_cleanup_config[NamespacesToCleanup]}
+kubectl -n ${namespace} delete deployment,po,svc --all
