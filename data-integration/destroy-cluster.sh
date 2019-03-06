@@ -31,8 +31,7 @@ read_infra_cleanup_props ${input_dir} infra_cleanup_config
 
 # Delete database
 db_identifier=${infra_cleanup_config[${database_name_key}]}
-echo ${db_identifier}
-delete_database db_identifier
+delete_database ${db_identifier}
 
 # Cleanup k8s resources
 cleanup_k8s_resources infra_cleanup_config
