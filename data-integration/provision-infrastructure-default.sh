@@ -22,5 +22,8 @@ grand_parent_path=$(dirname ${parent_path})
 . ${grand_parent_path}/utils/database_utils.sh
 
 output_dir=$2
+ballerina_version=$3
+
+echo "Ballerina version: ${ballerina_version}"
 
 create_default_database_and_write_infra_properties ${output_dir} "db.t2.micro"
