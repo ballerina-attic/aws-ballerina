@@ -37,3 +37,25 @@ function generate_random_name() {
     local new_uuid=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
     echo ${prefix}-${new_uuid}
 }
+
+# Reads a property file in to the passed associative array. Note that the associative array should be declared before
+# calling this function.
+#
+# $1 - Property file path
+# $2 - associative array
+#
+# Usage example:
+# declare -A some_array
+# read_property_file /path/to/some-file.properties some_array
+function read_property_file() {
+    local property_file_path=$1
+    # Read configuration into an associative array
+    # IFS is the 'internal field separator'. In this case, your file uses '='
+    local -n __props=$2
+    IFS="="
+    while read -r key value
+    do
+         __props[$key]=$value
+    done < ${property_file_path}
+    unset IFS
+}

@@ -52,12 +52,12 @@ function create_default_cluster_and_write_infra_properties() {
 
     declare -A infra_cleanup_props;
 
-    infra_cleanup_props[${cluster_name_key}]=${cluster_name}
-    infra_cleanup_props[${cluster_region_key}]=${cluster_region}
+    infra_cleanup_props[ClusterName]=${cluster_name}
+    infra_cleanup_props[ClusterRegion]=${cluster_region}
 
     write_to_properties_file ${output_dir}/infrastructure-cleanup.properties infra_cleanup_props
 
-    echo "${config_filename_key}=${config_file_name}">> ${output_dir}/infrastructure.properties
+    echo "ConfigFileName=${config_file_name}">> ${output_dir}/infrastructure.properties
 }
 
 # This creates the cluster with default properties, but does not write any information to the output directory.
@@ -139,28 +139,6 @@ function generate_random_cluster_name() {
     echo $(generate_random_name "ballerina-cluster")
 }
 
-# Reads a property file in to the passed associative array. Note that the associative array should be declared before
-# calling this function.
-#
-# $1 - Property file path
-# $2 - associative array
-#
-# Usage example:
-# declare -A some_array
-# read_property_file /path/to/some-file.properties some_array
-function read_property_file() {
-    local property_file_path=$1
-    # Read configuration into an associative array
-    # IFS is the 'internal field separator'. In this case, your file uses '='
-    local -n props=$2
-    IFS="="
-    while read -r key value
-    do
-         props[$key]=$value
-    done < ${property_file_path}
-    unset IFS
-}
-
 # Deletes the EKS cluster and related resources, provided the cluster name
 #
 # $1 - Name of the cluster
@@ -199,4 +177,19 @@ function delete_k8s_services() {
        echo "Deleting $service"
        kubectl delete svc ${service}
     done
+}
+
+# Deletes all k8s resources in the used namespace. The relevant namespace is taken from
+# infrastructure-cleanup.properties.
+function cleanup_k8s_resources() {
+    local -n __infra_cleanup_config=$1
+    local namespace=${__infra_cleanup_config[NamespacesToCleanup]}
+    kubectl -n ${namespace} delete deployment,po,svc --all
+}
+
+function read_infra_cleanup_props() {
+    # Read configuration into an associative array
+    local input_dir=$1
+    local -n __infra_cleanup_config=$2
+    read_property_file "${input_dir}/infrastructure-cleanup.properties" __infra_cleanup_config
 }
