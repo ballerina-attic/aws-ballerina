@@ -184,7 +184,12 @@ function delete_k8s_services() {
 function cleanup_k8s_resources() {
     local -n __infra_cleanup_config=$1
     local namespace=${__infra_cleanup_config[NamespacesToCleanup]}
-    kubectl -n ${namespace} delete deployment,po,svc --all
+    if [ "${namespace}" != "" ]; then
+        kubectl -n ${namespace} delete deployment,po,svc --all
+        kubectl delete namespaces ${namespace}
+    else
+        echo "Namespace string is empty"
+    fi
 }
 
 function read_infra_cleanup_props() {
